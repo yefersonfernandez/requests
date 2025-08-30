@@ -7,6 +7,7 @@ import org.reactivecommons.utils.ObjectMapper;
 import org.springframework.data.domain.Example;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -14,6 +15,7 @@ import reactor.test.StepVerifier;
 import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 class ReactiveAdapterOperationsTest {
@@ -21,13 +23,21 @@ class ReactiveAdapterOperationsTest {
     private DummyRepository repository;
     private ObjectMapper mapper;
     private ReactiveAdapterOperations<DummyEntity, DummyData, String, DummyRepository> operations;
+    private TransactionalOperator transactionalOperator;
 
     @BeforeEach
     void setUp() {
         repository = Mockito.mock(DummyRepository.class);
         mapper = Mockito.mock(ObjectMapper.class);
+        transactionalOperator = Mockito.mock(TransactionalOperator.class);
+
+        lenient().when(transactionalOperator.transactional(any(Mono.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(transactionalOperator.transactional(any(Flux.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
         operations = new ReactiveAdapterOperations<DummyEntity, DummyData, String, DummyRepository>(
-                repository, mapper, DummyEntity::toEntity) {};
+                repository, mapper, DummyEntity::toEntity, transactionalOperator) {};
     }
 
     @Test

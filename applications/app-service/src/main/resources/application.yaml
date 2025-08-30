@@ -60,6 +60,12 @@ resilience4j:
         minimumNumberOfCalls: 10
         waitDurationInOpenState: "10s"
 
+springdoc:
+  swagger-ui:
+    path: "/api/doc/swagger-ui.html"
+  api-docs:
+    path: "/api/doc/api-docs"
+
 routes:
   paths:
     loans: "/api/v1/loans"

@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 @Schema(description = "Response DTO for a loan")
 public record LoanResponseDto(
 
+        @Schema(description = "Unique identifier of the loan", example = "1")
+        Long id,
+
         @Schema(description = "Loan amount", example = "15000")
         BigDecimal amount,
 
