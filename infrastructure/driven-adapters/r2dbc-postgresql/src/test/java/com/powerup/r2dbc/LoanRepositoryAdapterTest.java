@@ -2,6 +2,8 @@ package com.powerup.r2dbc;
 
 import com.powerup.model.loan.Loan;
 import com.powerup.r2dbc.entity.LoanEntity;
+import com.powerup.r2dbc.loan.ILoanRepository;
+import com.powerup.r2dbc.loan.LoanRepositoryAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

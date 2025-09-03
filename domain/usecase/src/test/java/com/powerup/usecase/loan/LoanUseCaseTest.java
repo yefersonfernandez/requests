@@ -1,13 +1,15 @@
 package com.powerup.usecase.loan;
 
+import com.powerup.enums.ExceptionMessages;
+import com.powerup.exception.ForbiddenException;
 import com.powerup.exception.LoanTypeNotFoundException;
-import com.powerup.exception.UserNotFoundException;
 import com.powerup.model.loan.Loan;
 import com.powerup.model.loan.gateways.ILoanRepositoryPort;
 import com.powerup.model.loantype.LoanType;
 import com.powerup.model.loantype.gateways.ILoanTypeRepositoryPort;
 import com.powerup.port.consumer.IUserConsumerPort;
 import com.powerup.port.consumer.model.UserConsumer;
+import com.powerup.port.token.ISecurityContextPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,9 @@ class LoanUseCaseTest {
     private ILoanTypeRepositoryPort loanTypeRepositoryPort;
     @Mock
     private IUserConsumerPort userConsumerPort;
+    @Mock
+    private ISecurityContextPort securityContextPort;
+
     @InjectMocks
     private LoanUseCase loanUseCase;
 
@@ -74,6 +79,7 @@ class LoanUseCaseTest {
     @Test
     @DisplayName("Must save a loan successfully when user and loan type are valid")
     void testSaveLoanSuccess() {
+        when(securityContextPort.getUserEmail()).thenReturn(Mono.just("andres@gmail.com"));
         when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.just(userConsumer));
         when(loanTypeRepositoryPort.findById(loan.getIdLoanType())).thenReturn(Mono.just(loanType));
         when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
@@ -84,18 +90,20 @@ class LoanUseCaseTest {
     }
 
     @Test
-    @DisplayName("Must return error if user is not found")
-    void testSaveLoanUserNotFound() {
-        when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.empty());
+    @DisplayName("Must return ForbiddenException if token email does not match user email")
+    void testSaveLoanForbidden() {
+        when(securityContextPort.getUserEmail()).thenReturn(Mono.just("wrong@gmail.com"));
+        when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.just(userConsumer));
 
         StepVerifier.create(loanUseCase.saveLoan(loan))
-                .expectError(UserNotFoundException.class)
+                .expectError(ForbiddenException.class)
                 .verify();
     }
 
     @Test
     @DisplayName("Must return error if loan type is not found")
     void testSaveLoanLoanTypeNotFound() {
+        when(securityContextPort.getUserEmail()).thenReturn(Mono.just("andres@gmail.com"));
         when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.just(userConsumer));
         when(loanTypeRepositoryPort.findById(loan.getIdLoanType())).thenReturn(Mono.empty());
 

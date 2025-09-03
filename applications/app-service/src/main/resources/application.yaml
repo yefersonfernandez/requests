@@ -69,3 +69,9 @@ springdoc:
 routes:
   paths:
     loans: "/api/v1/loans"
+
+security:
+  jwt:
+    keys-location:
+      public: classpath:keys/public_key.pem
+

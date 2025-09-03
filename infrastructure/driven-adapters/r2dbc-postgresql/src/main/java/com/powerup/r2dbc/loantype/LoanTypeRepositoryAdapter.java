@@ -1,4 +1,4 @@
-package com.powerup.r2dbc;
+package com.powerup.r2dbc.loantype;
 
 import com.powerup.model.loantype.LoanType;
 import com.powerup.model.loantype.gateways.ILoanTypeRepositoryPort;

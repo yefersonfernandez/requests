@@ -334,3 +334,6 @@ gradle-app.setting
 # -----
 *.hprof
 build-cache
+
+# Ignorar todas las llaves y certificados PEM
+*.pem

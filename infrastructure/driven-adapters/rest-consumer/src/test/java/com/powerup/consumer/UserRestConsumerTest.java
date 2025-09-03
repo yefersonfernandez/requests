@@ -1,13 +1,19 @@
 package com.powerup.consumer;
 
+import com.powerup.consumer.dto.user.response.UserResponseDto;
+import com.powerup.exception.RemoteServiceException;
+import com.powerup.exception.UserNotFoundException;
 import com.powerup.port.consumer.model.UserConsumer;
+import com.powerup.port.token.ISecurityContextPort;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.*;
+import org.mockito.Mockito;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -18,6 +24,7 @@ class UserRestConsumerTest {
 
     private static MockWebServer mockBackEnd;
     private static UserRestConsumer userRestConsumer;
+    private static ISecurityContextPort securityContextPort;
 
     @BeforeAll
     static void setUp() throws IOException {
@@ -28,7 +35,13 @@ class UserRestConsumerTest {
                 .baseUrl(mockBackEnd.url("/").toString())
                 .build();
 
-        userRestConsumer = new UserRestConsumer(webClient, dto -> UserConsumer.builder()
+        // Mock del security context
+        securityContextPort = Mockito.mock(ISecurityContextPort.class);
+        Mockito.when(securityContextPort.getAccessToken())
+                .thenReturn(Mono.just("fake-token"));
+
+        // Mapper simple inline
+        UserConsumerMapper mapper = dto -> UserConsumer.builder()
                 .id(dto.getId())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
@@ -38,7 +51,9 @@ class UserRestConsumerTest {
                 .identityDocument(dto.getIdentityDocument())
                 .email(dto.getEmail())
                 .baseSalary(dto.getBaseSalary())
-                .build());
+                .build();
+
+        userRestConsumer = new UserRestConsumer(webClient, mapper, securityContextPort);
     }
 
     @AfterAll
@@ -68,9 +83,7 @@ class UserRestConsumerTest {
                 .setResponseCode(HttpStatus.OK.value())
                 .setBody(responseJson));
 
-        var result = userRestConsumer.getUserByIdentityDocument("123");
-
-        StepVerifier.create(result)
+        StepVerifier.create(userRestConsumer.getUserByIdentityDocument("123"))
                 .expectNextMatches(user ->
                         user.getId().equals(1L) &&
                                 user.getFirstName().equals("John") &&
@@ -86,12 +99,24 @@ class UserRestConsumerTest {
     }
 
     @Test
-    @DisplayName("Should return empty when user not found")
-    void shouldReturnEmptyWhenUserNotFound() {
+    @DisplayName("Should throw UserNotFoundException when user not found")
+    void shouldThrowUserNotFoundExceptionWhenUserNotFound() {
         mockBackEnd.enqueue(new MockResponse()
                 .setResponseCode(HttpStatus.NOT_FOUND.value()));
 
         StepVerifier.create(userRestConsumer.getUserByIdentityDocument("999"))
-                .verifyComplete();
+                .expectError(UserNotFoundException.class)
+                .verify();
+    }
+
+    @Test
+    @DisplayName("Should throw RemoteServiceException on 5xx errors")
+    void shouldThrowRemoteServiceExceptionOn5xx() {
+        mockBackEnd.enqueue(new MockResponse()
+                .setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+
+        StepVerifier.create(userRestConsumer.getUserByIdentityDocument("123"))
+                .expectError( RemoteServiceException.class)
+                .verify();
     }
 }

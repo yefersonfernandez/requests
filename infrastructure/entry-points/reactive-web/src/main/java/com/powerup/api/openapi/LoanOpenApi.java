@@ -12,6 +12,7 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 import static org.springdoc.core.fn.builders.content.Builder.contentBuilder;
 import static org.springdoc.core.fn.builders.requestbody.Builder.requestBodyBuilder;
 import static org.springdoc.core.fn.builders.schema.Builder.schemaBuilder;
+import static org.springdoc.core.fn.builders.securityrequirement.Builder.securityRequirementBuilder;
 
 @UtilityClass
 public class LoanOpenApi {
@@ -28,6 +29,7 @@ public class LoanOpenApi {
                 .operationId("saveLoan")
                 .description("Registers a new loan")
                 .tag(TAG)
+                .security(securityRequirementBuilder().name("bearerAuth"))
                 .requestBody(requestBodyBuilder()
                         .required(true)
                         .content(contentBuilder()
