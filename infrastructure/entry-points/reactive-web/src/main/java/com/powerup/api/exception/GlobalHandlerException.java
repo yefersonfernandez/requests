@@ -37,17 +37,14 @@ public class GlobalHandlerException extends AbstractErrorWebExceptionHandler {
     }
 
     private Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
-        Map<String, Object> errorMap = getErrorAttributes(request, ErrorAttributeOptions.defaults());
+        Object errorObj = getErrorAttributes(request, ErrorAttributeOptions.defaults()).get("error");
 
-        Object errorObj = errorMap.get("error");
-        Integer statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
-
-        if (errorObj instanceof CustomError) {
-            statusCode = ((CustomError) errorObj).getStatusCode();
-        }
+        int statusCode = (errorObj instanceof CustomError ce)
+                ? ce.getStatusCode()
+                : HttpStatus.INTERNAL_SERVER_ERROR.value();
 
         return ServerResponse.status(statusCode)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(errorMap));
+                .body(BodyInserters.fromValue(errorObj));
     }
 }

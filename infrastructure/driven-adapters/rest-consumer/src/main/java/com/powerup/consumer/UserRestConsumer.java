@@ -37,6 +37,21 @@ public class UserRestConsumer implements IUserConsumerPort {
                 );
     }
 
+    @CircuitBreaker(name = "getUserByEmail")
+    public Mono<UserConsumer> getUserByEmail(String email) {
+        return securityContextPort.getAccessToken()
+                .flatMap(token -> client
+                        .get()
+                        .uri("/api/v1/users/userByEmail/{email}", email)
+                        .headers(headers -> headers.setBearerAuth(token))
+                        .retrieve()
+                        .onStatus(HttpStatusCode::is4xxClientError, response -> handle4xxError(response, email))
+                        .onStatus(HttpStatusCode::is5xxServerError, this::handle5xxError)
+                        .bodyToMono(UserResponseDto.class)
+                        .map(userConsumerMapper::toUserConsumer)
+                );
+    }
+
     private Mono<? extends Throwable> handle4xxError(ClientResponse response, String identityDocument) {
         return Mono.error(new UserNotFoundException(ExceptionMessages.USER_NOT_FOUND.format(identityDocument)));
     }

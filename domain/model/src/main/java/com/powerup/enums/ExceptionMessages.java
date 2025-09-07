@@ -1,5 +1,8 @@
 package com.powerup.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum ExceptionMessages {
 
     USER_NOT_FOUND("User with identity document '%s' does not exist"),
@@ -14,10 +17,6 @@ public enum ExceptionMessages {
 
     ExceptionMessages(String message) {
         this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
     }
 
     public String format(Object... args) {

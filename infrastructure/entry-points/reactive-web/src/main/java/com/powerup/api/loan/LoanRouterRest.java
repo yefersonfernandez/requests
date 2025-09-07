@@ -1,4 +1,4 @@
-package com.powerup.api;
+package com.powerup.api.loan;
 
 import com.powerup.api.config.LoanPath;
 import com.powerup.api.openapi.LoanOpenApi;
@@ -13,7 +13,7 @@ import static org.springdoc.webflux.core.fn.SpringdocRouteBuilder.route;
 
 @Configuration
 @RequiredArgsConstructor
-public class RouterRest {
+public class LoanRouterRest {
 
     private final LoanPath loanPath;
 
@@ -21,6 +21,7 @@ public class RouterRest {
     public RouterFunction<ServerResponse> routerFunction(LoanHandler handler) {
         return route()
                 .POST(loanPath.getLoans(), handler::listenSaveLoan, LoanOpenApi::saveLoan)
+                .GET(loanPath.getLoansForReview(), handler::getLoansForReview, LoanOpenApi::getLoansForReview)
                 .build();
     }
 }

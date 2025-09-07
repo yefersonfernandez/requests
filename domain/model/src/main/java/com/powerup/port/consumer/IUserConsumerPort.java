@@ -5,4 +5,5 @@ import reactor.core.publisher.Mono;
 
 public interface IUserConsumerPort {
     Mono<UserConsumer> getUserByIdentityDocument(String document );
+    Mono<UserConsumer> getUserByEmail(String email);
 }

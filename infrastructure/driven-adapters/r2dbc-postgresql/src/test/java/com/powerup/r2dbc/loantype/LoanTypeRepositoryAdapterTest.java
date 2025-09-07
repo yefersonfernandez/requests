@@ -1,9 +1,7 @@
-package com.powerup.r2dbc;
+package com.powerup.r2dbc.loantype;
 
 import com.powerup.model.loantype.LoanType;
 import com.powerup.r2dbc.entity.LoanTypeEntity;
-import com.powerup.r2dbc.loantype.ILoanTypeRepository;
-import com.powerup.r2dbc.loantype.LoanTypeRepositoryAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,6 +70,26 @@ class LoanTypeRepositoryAdapterTest {
 
         StepVerifier.create(repositoryAdapter.findById(1L))
                 .expectNext(loanType)
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Should find a loan type by name")
+    void testFindByName() {
+        when(repository.findByName("Personal Loan")).thenReturn(Mono.just(loanTypeEntity));
+        when(mapper.map(loanTypeEntity, LoanType.class)).thenReturn(loanType);
+
+        StepVerifier.create(repositoryAdapter.findByName("Personal Loan"))
+                .expectNext(loanType)
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Should return empty when loan type by name not found")
+    void testFindByNameEmpty() {
+        when(repository.findByName("Unknown Loan")).thenReturn(Mono.empty());
+
+        StepVerifier.create(repositoryAdapter.findByName("Unknown Loan"))
                 .verifyComplete();
     }
 }

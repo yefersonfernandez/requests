@@ -69,6 +69,7 @@ springdoc:
 routes:
   paths:
     loans: "/api/v1/loans"
+    LoansForReview: "/api/v1/loansForReview"
 
 security:
   jwt:

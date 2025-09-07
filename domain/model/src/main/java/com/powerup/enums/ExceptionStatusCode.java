@@ -1,5 +1,8 @@
 package com.powerup.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum ExceptionStatusCode {
 
     BAD_REQUEST(400),
@@ -12,9 +15,5 @@ public enum ExceptionStatusCode {
 
     ExceptionStatusCode(int statusCode) {
         this.statusCode = statusCode;
-    }
-
-    public int getStatusCode() {
-        return statusCode;
     }
 }

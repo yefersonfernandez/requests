@@ -1,4 +1,4 @@
-package com.powerup.security;
+package com.powerup.security.adapter;
 
 import com.powerup.port.token.ISecurityContextPort;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
