@@ -35,4 +35,8 @@ sonar {
     }
 }
 
+tasks.named('processResources') {
+    exclude 'keys/**'
+}
+
 apply from: './main.gradle'

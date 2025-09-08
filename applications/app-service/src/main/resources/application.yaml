@@ -1,12 +1,11 @@
 server:
   port: 8081
+
 spring:
   application:
     name: "requests"
   devtools:
     add-properties: false
-  profiles:
-    include: null
 
 management:
   endpoints:
@@ -26,17 +25,17 @@ cors:
 
 adapters:
   r2dbc:
-    host: "localhost"
-    port: 5432
-    database: "requests"
+    host: ${SPRING_R2DBC_HOST_REQUEST:localhost}
+    port: ${SPRING_R2DBC_PORT_REQUEST:5432}
+    database: ${SPRING_R2DBC_DATABASE_REQUEST:requests}
     schema: "public"
-    username: "sm"
-    password: "1234"
+    username: ${SPRING_R2DBC_USERNAME_REQUEST:sm}
+    password: ${SPRING_R2DBC_PASSWORD_REQUEST:1234}
 
 adapter:
   restconsumer:
     timeout: 5000
-    url: "http://localhost:8080"
+    url: ${AUTH_SERVICE_URL:http://localhost:8080}
 
 resilience4j:
   circuitbreaker:
@@ -74,5 +73,4 @@ routes:
 security:
   jwt:
     keys-location:
-      public: classpath:keys/public_key.pem
-
+      public: ${JWT_PUBLIC_KEY:classpath:keys/public_key.pem}
