@@ -1,6 +1,5 @@
 server:
   port: 8081
-
 spring:
   application:
     name: "requests"
@@ -25,17 +24,20 @@ cors:
 
 adapters:
   r2dbc:
-    host: ${SPRING_R2DBC_HOST_REQUEST:localhost}
-    port: ${SPRING_R2DBC_PORT_REQUEST:5432}
-    database: ${SPRING_R2DBC_DATABASE_REQUEST:requests}
+    host: "${SPRING_R2DBC_HOST_REQUEST:localhost}"
+    port: "${SPRING_R2DBC_PORT_REQUEST:5432}"
+    database: "${SPRING_R2DBC_DATABASE_REQUEST:requests}"
     schema: "public"
-    username: ${SPRING_R2DBC_USERNAME_REQUEST:sm}
-    password: ${SPRING_R2DBC_PASSWORD_REQUEST:1234}
+    username: "${SPRING_R2DBC_USERNAME_REQUEST:sm}"
+    password: "${SPRING_R2DBC_PASSWORD_REQUEST:1234}"
 
 adapter:
   restconsumer:
     timeout: 5000
-    url: ${AUTH_SERVICE_URL:http://localhost:8080}
+    url: "${AUTH_SERVICE_URL:http://localhost:8080}"
+  sqs:
+    region: "${MY_AWS_REGION:us-east-1}"
+    queueUrl: "${AWS_SQS_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-decisions-queue}"
 
 resilience4j:
   circuitbreaker:
@@ -68,9 +70,10 @@ springdoc:
 routes:
   paths:
     loans: "/api/v1/loans"
-    LoansForReview: "/api/v1/loansForReview"
+    loansForReview: "/api/v1/loansForReview"
+    loanDecision: "/api/v1/loans/{id}/decision"
 
 security:
   jwt:
     keys-location:
-      public: ${JWT_PUBLIC_KEY:classpath:keys/public_key.pem}
+      public: "${JWT_PUBLIC_KEY:classpath:keys/public_key.pem}"

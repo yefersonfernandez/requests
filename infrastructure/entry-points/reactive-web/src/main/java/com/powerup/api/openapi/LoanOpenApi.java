@@ -1,9 +1,11 @@
 package com.powerup.api.openapi;
 
 import com.powerup.api.dto.error.CustomError;
+import com.powerup.api.dto.request.LoanDecisionRequestDto;
 import com.powerup.api.dto.request.LoanRequestDto;
 import com.powerup.api.dto.response.LoanForReviewResponseDto;
 import com.powerup.api.dto.response.LoanResponseDto;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import lombok.experimental.UtilityClass;
 import org.springdoc.core.fn.builders.operation.Builder;
 import org.springframework.http.HttpStatus;
@@ -93,4 +95,35 @@ public class LoanOpenApi {
                                 .mediaType(MediaType.APPLICATION_JSON_VALUE)
                                 .schema(schemaBuilder().implementation(CustomError.class))));
     }
+
+    public Builder processLoanDecision(Builder builder) {
+        return builder
+                .operationId("processLoanDecision")
+                .description("Allows an advisor to approve or reject a loan. The applicant receives an email notification with the final decision.")
+                .tag(TAG)
+                .security(securityRequirementBuilder().name("bearerAuth"))
+                .parameter(parameterBuilder()
+                        .name("id")
+                        .in(ParameterIn.PATH)
+                        .description("ID of the loan to update")
+                        .required(true))
+                .requestBody(requestBodyBuilder()
+                        .required(true)
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(LoanDecisionRequestDto.class))))
+                .response(responseBuilder().responseCode(SUCCESS_CODE).description("Loan decision processed successfully")
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(LoanResponseDto.class))))
+                .response(responseBuilder().responseCode(BAD_REQUEST_CODE).description(BAD_REQUEST)
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(CustomError.class))))
+                .response(responseBuilder().responseCode(NOT_FOUND_CODE).description(NOT_FOUND)
+                        .content(contentBuilder()
+                                .mediaType(MediaType.APPLICATION_JSON_VALUE)
+                                .schema(schemaBuilder().implementation(CustomError.class))));
+    }
+
 }

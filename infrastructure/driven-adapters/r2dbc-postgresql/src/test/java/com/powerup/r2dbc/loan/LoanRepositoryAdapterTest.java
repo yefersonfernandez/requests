@@ -100,4 +100,26 @@ class LoanRepositoryAdapterTest {
                 .expectNext(loan)
                 .verifyComplete();
     }
+
+    @Test
+    @DisplayName("Should find loan by id and return domain object")
+    void testFindById() {
+        when(repository.findById(1L)).thenReturn(Mono.just(loanEntity));
+        when(mapper.map(loanEntity, Loan.class)).thenReturn(loan);
+
+        StepVerifier.create(repositoryAdapter.findById(1L))
+                .expectNext(loan)
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Should return empty if loan by id not found")
+    void testFindByIdNotFound() {
+        when(repository.findById(20L)).thenReturn(Mono.empty());
+
+        StepVerifier.create(repositoryAdapter.findById(20L))
+                .expectNextCount(0)
+                .verifyComplete();
+    }
+
 }

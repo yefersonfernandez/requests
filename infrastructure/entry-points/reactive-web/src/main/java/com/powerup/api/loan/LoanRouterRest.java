@@ -22,6 +22,7 @@ public class LoanRouterRest {
         return route()
                 .POST(loanPath.getLoans(), handler::listenSaveLoan, LoanOpenApi::saveLoan)
                 .GET(loanPath.getLoansForReview(), handler::getLoansForReview, LoanOpenApi::getLoansForReview)
+                .PUT(loanPath.getLoanDecision(), handler::listenProcessLoanDecision ,LoanOpenApi::processLoanDecision)
                 .build();
     }
 }

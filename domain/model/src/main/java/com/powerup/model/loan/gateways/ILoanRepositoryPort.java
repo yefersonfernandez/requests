@@ -8,4 +8,5 @@ public interface ILoanRepositoryPort {
     Mono<Loan> saveLoan(Loan loan);
     Flux<Loan> findLoansForReview(Long states, int page, int size);
     Flux<Loan> findLoansForReviewApprovedByEmail(String email);
+    Mono<Loan> findById(Long id);
 }

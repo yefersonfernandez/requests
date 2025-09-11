@@ -10,4 +10,5 @@ import reactor.core.publisher.Mono;
 public interface ILoanRepository extends ReactiveCrudRepository<LoanEntity, Long>, ReactiveQueryByExampleExecutor<LoanEntity> {
     Flux<LoanEntity> findByIdLoanState(Long state, Pageable pageable);
     Flux<LoanEntity> findAllByEmailAndIdLoanState(String email, Long idLoanState);
+    Mono<LoanEntity> findById(Long id);
 }

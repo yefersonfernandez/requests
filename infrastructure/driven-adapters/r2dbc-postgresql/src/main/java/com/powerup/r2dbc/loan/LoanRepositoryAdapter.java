@@ -33,4 +33,10 @@ public class LoanRepositoryAdapter extends ReactiveAdapterOperations<Loan, LoanE
         return repository.findAllByEmailAndIdLoanState(email, 3L)
                 .map(super::toEntity);
     }
+
+    @Override
+    public Mono<Loan> findById(Long id) {
+        return repository.findById(id)
+                .map(super::toEntity);
+    }
 }

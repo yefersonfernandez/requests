@@ -28,6 +28,7 @@ subprojects {
     }
 
     dependencies {
+		implementation platform('software.amazon.awssdk:bom:2.32.13')
         implementation 'io.projectreactor:reactor-core'
         implementation 'io.projectreactor.addons:reactor-extra'
 
@@ -99,6 +100,17 @@ tasks.register('jacocoMergedReport', JacocoReport) {
         csv.setRequired false
         html.setRequired true
     }
+    classDirectories.setFrom(
+            files(subprojects.sourceSets.main.output).collect {
+                fileTree(dir: it, exclude: [
+                        '**/com/powerup/security/config/**',
+                        '**/com/powerup/security/exceptions/**',
+                        '**/com/powerup/security/constants/**',
+                        '**/com/powerup/api/config/**',
+                        '**/com/powerup/sqs/sender/config/**',
+                ])
+            }
+    )
 }
 
 tasks.withType(JavaCompile).configureEach {

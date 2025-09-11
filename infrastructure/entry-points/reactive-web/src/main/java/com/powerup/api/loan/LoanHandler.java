@@ -1,5 +1,6 @@
 package com.powerup.api.loan;
 
+import com.powerup.api.dto.request.LoanDecisionRequestDto;
 import com.powerup.api.dto.request.LoanRequestDto;
 import com.powerup.api.mapper.ILoanForReviewMapper;
 import com.powerup.api.mapper.ILoanMapper;
@@ -53,7 +54,22 @@ public class LoanHandler {
                 .flatMap(pageResult -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(pageResult))
-                .doOnSubscribe(s -> log.debug("Fetching loans for review, status={}, page={}, size={}", status, page, size))
+                .doOnSubscribe(s -> log.info("Fetching loans for review, status={}, page={}, size={}", status, page, size))
                 .doOnError(e -> log.error("Error fetching loans for review", e));
+    }
+
+    public Mono<ServerResponse> listenProcessLoanDecision(ServerRequest serverRequest) {
+        Long loanId = Long.valueOf(serverRequest.pathVariable("id"));
+
+        return serverRequest.bodyToMono(LoanDecisionRequestDto.class)
+                .flatMap(validatorUtil::validate)
+                .doOnNext(dto -> log.info("Received loan decision request for loanId={} with decision={}", loanId, dto.decision()))
+                .flatMap(dto -> loanUseCase.processLoanDecision(loanId, dto.decision()))
+                .doOnSuccess(loan -> log.info("Loan decision processed successfully for loanId={}", loan.getId()))
+                .doOnError(error -> log.error("Error while processing loan decision: {}", error.getMessage(), error))
+                .map(loanMapper::toLoanResponseDto)
+                .flatMap(loanDecisionResult  -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(loanDecisionResult));
     }
 }

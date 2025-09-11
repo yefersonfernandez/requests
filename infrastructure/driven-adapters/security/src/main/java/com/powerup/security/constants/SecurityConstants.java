@@ -15,6 +15,7 @@ public class SecurityConstants {
 
     public static final String LOAN_CREATION_URL = "/api/v1/loans";
     public static final String LOAN_REVIEW_URL = "/api/v1/loansForReview";
+    public static final String LOAN_DECISION_URL = "/api/v1/loans/{id}/decision";
     public static final String[] PUBLIC_SWAGGER_PATHS = {
             "/api/doc/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**"
     };

@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .pathMatchers(PUBLIC_SWAGGER_PATHS).permitAll()
                         .pathMatchers(HttpMethod.POST, LOAN_CREATION_URL).hasAnyRole(ROLE_CLIENT)
                         .pathMatchers(HttpMethod.GET, LOAN_REVIEW_URL).hasAnyRole(ROLE_ADVISOR)
+                        .pathMatchers(HttpMethod.PUT, LOAN_DECISION_URL).hasAnyRole(ROLE_ADVISOR)
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

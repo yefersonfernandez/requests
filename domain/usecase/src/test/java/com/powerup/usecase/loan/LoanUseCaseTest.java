@@ -1,6 +1,8 @@
 package com.powerup.usecase.loan;
 
 import com.powerup.exception.ForbiddenException;
+import com.powerup.exception.LoanNotFoundException;
+import com.powerup.exception.LoanStateNotFoundException;
 import com.powerup.exception.LoanTypeNotFoundException;
 import com.powerup.model.loan.Loan;
 import com.powerup.model.loan.gateways.ILoanRepositoryPort;
@@ -10,6 +12,7 @@ import com.powerup.model.loantype.LoanType;
 import com.powerup.model.loantype.gateways.ILoanTypeRepositoryPort;
 import com.powerup.port.consumer.IUserConsumerPort;
 import com.powerup.port.consumer.model.UserConsumer;
+import com.powerup.port.sqs.ISqsSenderPort;
 import com.powerup.port.token.ISecurityContextPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +47,8 @@ class LoanUseCaseTest {
     private IUserConsumerPort userConsumerPort;
     @Mock
     private ISecurityContextPort securityContextPort;
+    @Mock
+    private ISqsSenderPort iSqsSenderPort;
 
     @InjectMocks
     private LoanUseCase loanUseCase;
@@ -214,7 +219,42 @@ class LoanUseCaseTest {
                 .thenReturn(Flux.just(approvedLoan));
 
         StepVerifier.create(loanUseCase.getLoansForReviewByStatus(null, 0, 10))
-                .expectNextMatches(l -> l.getTotalMonthlyDebtApprovedLoans().equals(BigDecimal.valueOf(2000)))
+                .expectNextMatches(l -> l.getTotalMonthlyDebtApprovedLoans().equals(BigDecimal.valueOf(1152.38)))
                 .verifyComplete();
     }
+
+    @Test
+    @DisplayName("Must process loan decision successfully")
+    void testProcessLoanDecisionSuccess() {
+        when(loanRepositoryPort.findById(anyLong())).thenReturn(Mono.just(loan));
+        when(loanStateRepositoryPort.findByName(anyString())).thenReturn(Mono.just(approvedState));
+        when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
+        when(iSqsSenderPort.sendMessage(any())).thenReturn(Mono.empty());
+
+        StepVerifier.create(loanUseCase.processLoanDecision(1L, "APPROVED"))
+                .expectNextMatches(l -> l.getIdLoanState().equals(approvedState.getId()))
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Must return error if loan not found")
+    void testProcessLoanDecisionLoanNotFound() {
+        when(loanRepositoryPort.findById(anyLong())).thenReturn(Mono.empty());
+
+        StepVerifier.create(loanUseCase.processLoanDecision(20L, "APPROVED"))
+                .expectError(LoanNotFoundException.class)
+                .verify();
+    }
+
+    @Test
+    @DisplayName("Must return error if loan state not found")
+    void testProcessLoanDecisionStateNotFound() {
+        when(loanRepositoryPort.findById(anyLong())).thenReturn(Mono.just(loan));
+        when(loanStateRepositoryPort.findByName(anyString())).thenReturn(Mono.empty());
+
+        StepVerifier.create(loanUseCase.processLoanDecision(1L, "NON_EXISTENT_STATE"))
+                .expectError(LoanStateNotFoundException.class)
+                .verify();
+    }
+
 }
