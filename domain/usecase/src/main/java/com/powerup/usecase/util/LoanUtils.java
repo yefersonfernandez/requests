@@ -5,12 +5,15 @@ import com.powerup.model.loan.Loan;
 import com.powerup.model.loanstate.LoanState;
 import com.powerup.model.loantype.LoanType;
 import com.powerup.port.consumer.model.UserConsumer;
+import com.powerup.port.sqs.model.ActiveLoanInfo;
+import com.powerup.port.sqs.model.CapacityValidationMessage;
 import com.powerup.port.sqs.model.LoanDecisionMessage;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 @UtilityClass
 public class LoanUtils {
@@ -22,6 +25,50 @@ public class LoanUtils {
                 .email(userConsumer.getEmail())
                 .idLoanType(loan.getIdLoanType())
                 .idLoanState(1L)
+                .build();
+    }
+
+    public static ActiveLoanInfo buildActiveLoanInfo(Loan loan, LoanType loanType) {
+        return ActiveLoanInfo.builder()
+                .amount(loan.getAmount())
+                .term(loan.getTerm())
+                .interestRate(loanType.getInterestRate())
+                .build();
+    }
+
+    public static CapacityValidationMessage buildCapacityValidationMessage(
+            Loan loan, UserConsumer user, LoanType currentLoanType, List<ActiveLoanInfo> activeLoans
+    ) {
+        return CapacityValidationMessage.builder()
+                .loanId(loan.getId())
+                .loanAmount(loan.getAmount())
+                .loanTerm(loan.getTerm())
+                .interestRate(currentLoanType.getInterestRate())
+                .applicantEmail(user.getEmail())
+                .applicantIncome(user.getBaseSalary())
+                .activeLoans(activeLoans)
+                .build();
+    }
+
+    public static LoanDecisionMessage buildLoanDecisionMessage(Loan loan, String decision) {
+        return LoanDecisionMessage.builder()
+                .loanId(loan.getId())
+                .clientEmail(loan.getEmail())
+                .decision(decision)
+                .build();
+    }
+
+    public static LoanForReview buildLoanForReview(Loan loan, UserConsumer user, LoanType type, LoanState state, BigDecimal totalMonthlyDebt) {
+        return LoanForReview.builder()
+                .amount(loan.getAmount())
+                .term(loan.getTerm())
+                .email(loan.getEmail())
+                .loanStatus(state.getName())
+                .loanType(type.getName())
+                .interestRate(type.getInterestRate())
+                .clientName(user.getFirstName() + " " + user.getLastName())
+                .baseSalary(user.getBaseSalary())
+                .totalMonthlyDebtApprovedLoans(totalMonthlyDebt)
                 .build();
     }
 
@@ -44,28 +91,5 @@ public class LoanUtils {
                         )
                 )
                 .switchIfEmpty(Mono.just(BigDecimal.ZERO));
-    }
-
-
-    public static LoanForReview buildLoanForReview(Loan loan, UserConsumer user, LoanType type, LoanState state, BigDecimal totalMonthlyDebt) {
-        return LoanForReview.builder()
-                .amount(loan.getAmount())
-                .term(loan.getTerm())
-                .email(loan.getEmail())
-                .loanStatus(state.getName())
-                .loanType(type.getName())
-                .interestRate(type.getInterestRate())
-                .clientName(user.getFirstName() + " " + user.getLastName())
-                .baseSalary(user.getBaseSalary())
-                .totalMonthlyDebtApprovedLoans(totalMonthlyDebt)
-                .build();
-    }
-
-    public static LoanDecisionMessage buildLoanDecisionMessage(Loan loan, String decision) {
-        return LoanDecisionMessage.builder()
-                .loanId(loan.getId())
-                .clientEmail(loan.getEmail())
-                .decision(decision)
-                .build();
     }
 }

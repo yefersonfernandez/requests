@@ -5,7 +5,6 @@ spring:
     name: "requests"
   devtools:
     add-properties: false
-
 management:
   endpoints:
     web:
@@ -18,10 +17,8 @@ management:
   health:
     circuitbreakers:
       enabled: true
-
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"
-
 adapters:
   r2dbc:
     host: "${SPRING_R2DBC_HOST_REQUEST:localhost}"
@@ -30,7 +27,6 @@ adapters:
     schema: "public"
     username: "${SPRING_R2DBC_USERNAME_REQUEST:sm}"
     password: "${SPRING_R2DBC_PASSWORD_REQUEST:1234}"
-
 adapter:
   restconsumer:
     timeout: 5000
@@ -38,6 +34,7 @@ adapter:
   sqs:
     region: "${MY_AWS_REGION:us-east-1}"
     queueUrl: "${AWS_SQS_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-decisions-queue}"
+    capacityValidationQueueUrl: "${AWS_SQS_CAPACITY_VALIDATION_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-capacity-validation-request-queue}"
 
 resilience4j:
   circuitbreaker:
@@ -60,20 +57,25 @@ resilience4j:
         slidingWindowSize: 10
         minimumNumberOfCalls: 10
         waitDurationInOpenState: "10s"
-
 springdoc:
   swagger-ui:
     path: "/api/doc/swagger-ui.html"
   api-docs:
     path: "/api/doc/api-docs"
-
 routes:
   paths:
     loans: "/api/v1/loans"
     loansForReview: "/api/v1/loansForReview"
     loanDecision: "/api/v1/loans/{id}/decision"
-
 security:
   jwt:
     keys-location:
       public: "${JWT_PUBLIC_KEY:classpath:keys/public_key.pem}"
+entrypoint:
+  sqs:
+    region: "${MY_AWS_REGION:us-east-1}"
+    queueUrl: "${AWS_SQS_CAPACITY_VALIDATION_RESPONSE_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-capacity-validation-response-queue}"
+    waitTimeSeconds: "20"
+    maxNumberOfMessages: "10"
+    visibilityTimeoutSeconds: "10"
+    numberOfThreads: "1"

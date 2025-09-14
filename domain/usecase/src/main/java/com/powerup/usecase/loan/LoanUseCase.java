@@ -16,12 +16,15 @@ import com.powerup.model.loantype.gateways.ILoanTypeRepositoryPort;
 import com.powerup.port.consumer.IUserConsumerPort;
 import com.powerup.port.consumer.model.UserConsumer;
 import com.powerup.port.sqs.ISqsSenderPort;
+import com.powerup.port.sqs.model.CapacityValidationMessage;
 import com.powerup.port.token.ISecurityContextPort;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 
+import static com.powerup.usecase.util.LoanUtils.buildActiveLoanInfo;
+import static com.powerup.usecase.util.LoanUtils.buildCapacityValidationMessage;
 import static com.powerup.usecase.util.LoanUtils.buildLoanDecisionMessage;
 import static com.powerup.usecase.util.LoanUtils.buildLoanForReview;
 import static com.powerup.usecase.util.LoanUtils.buildLoanWithUserData;
@@ -39,15 +42,13 @@ public class LoanUseCase {
     private final ISqsSenderPort sqsSenderPort;
 
     public Mono<Loan> saveLoan(Loan loan) {
-        return securityContextPort.getUserEmail()
-                .flatMap(tokenEmail ->
-                        userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())
-                                .filter(user -> user.getEmail().equalsIgnoreCase(tokenEmail))
-                                .switchIfEmpty(Mono.error(new ForbiddenException(ExceptionMessages.FORBIDDEN_LOAN_CREATION.getMessage())))
-                                .flatMap(user -> validateLoanType(loan.getIdLoanType())
-                                        .then(Mono.just(buildLoanWithUserData(loan, user)))
-                                )
-                                .flatMap(loanRepositoryPort::saveLoan)
+        return validateUserEmail(loan)
+                .flatMap(user -> getLoanTypeOrError(loan)
+                        .flatMap(loanType -> {
+                            Loan loanToSave = buildLoanWithUserData(loan, user);
+                            return loanRepositoryPort.saveLoan(loanToSave)
+                                    .flatMap(savedLoan -> handleAutomaticValidation(savedLoan, user, loanType));
+                        })
                 );
     }
 
@@ -75,22 +76,57 @@ public class LoanUseCase {
     }
 
     public Mono<Loan> processLoanDecision(Long id, String decision) {
+        return updateLoanStateInternal(id, decision)
+                .flatMap(savedLoan -> sqsSenderPort.sendMessage(buildLoanDecisionMessage(savedLoan, decision))
+                        .thenReturn(savedLoan)
+                );
+    }
+
+    public Mono<Loan> updateLoanState(Long id, String decision) {
+        return updateLoanStateInternal(id, decision);
+    }
+
+    private Mono<UserConsumer> validateUserEmail(Loan loan) {
+        return securityContextPort.getUserEmail()
+                .flatMap(tokenEmail ->
+                        userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())
+                                .filter(user -> user.getEmail().equalsIgnoreCase(tokenEmail))
+                                .switchIfEmpty(Mono.error(new ForbiddenException(ExceptionMessages.FORBIDDEN_LOAN_CREATION.getMessage())))
+                );
+    }
+
+    private Mono<LoanType> getLoanTypeOrError(Loan loan) {
+        return loanTypeRepositoryPort.findById(loan.getIdLoanType())
+                .switchIfEmpty(Mono.error(new LoanTypeNotFoundException(ExceptionMessages.LOAN_TYPE_NOT_FOUND.format(loan.getIdLoanType()))));
+    }
+
+    private Mono<Loan> handleAutomaticValidation(Loan loan, UserConsumer user, LoanType loanType) {
+        return Mono.justOrEmpty(loanType.getAutomaticValidation())
+                .filter(Boolean::booleanValue)
+                .flatMap(v -> prepareCapacityValidationMessage(loan, user, loanType)
+                        .flatMap(sqsSenderPort::sendCapacityValidationMessage)
+                )
+                .then(Mono.just(loan));
+    }
+
+    private Mono<CapacityValidationMessage> prepareCapacityValidationMessage(
+            Loan loan, UserConsumer user, LoanType currentLoanType) {
+
+        return loanRepositoryPort.findLoansForReviewApprovedByEmail(user.getEmail())
+                .flatMap(activeLoan -> loanTypeRepositoryPort.findById(activeLoan.getIdLoanType())
+                        .map(activeLoanType -> buildActiveLoanInfo(activeLoan, activeLoanType))
+                )
+                .collectList()
+                .map(activeLoans -> buildCapacityValidationMessage(loan, user, currentLoanType, activeLoans));
+    }
+
+    private Mono<Loan> updateLoanStateInternal(Long id, String decision) {
         return loanRepositoryPort.findById(id)
                 .switchIfEmpty(Mono.error(new LoanNotFoundException(ExceptionMessages.LOAN_NOT_FOUND.format(id))))
                 .flatMap(loan -> loanStateRepositoryPort.findByName(decision)
                         .switchIfEmpty(Mono.error(new LoanStateNotFoundException(ExceptionMessages.LOAN_STATE_NOT_FOUND.format(decision))))
                         .map(loanState -> { loan.setIdLoanState(loanState.getId()); return loan; })
                 )
-                .flatMap(loanRepositoryPort::saveLoan)
-                .flatMap(savedLoan ->
-                        sqsSenderPort.sendMessage(buildLoanDecisionMessage(savedLoan, decision))
-                                .thenReturn(savedLoan)
-                );
-    }
-
-    private Mono<Void> validateLoanType(Long loanTypeId) {
-        return loanTypeRepositoryPort.findById(loanTypeId)
-                .switchIfEmpty(Mono.error(new LoanTypeNotFoundException(ExceptionMessages.LOAN_TYPE_NOT_FOUND.format(loanTypeId))))
-                .then();
+                .flatMap(loanRepositoryPort::saveLoan);
     }
 }

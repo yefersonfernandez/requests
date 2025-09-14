@@ -13,6 +13,7 @@ import com.powerup.model.loantype.gateways.ILoanTypeRepositoryPort;
 import com.powerup.port.consumer.IUserConsumerPort;
 import com.powerup.port.consumer.model.UserConsumer;
 import com.powerup.port.sqs.ISqsSenderPort;
+import com.powerup.port.sqs.model.CapacityValidationMessage;
 import com.powerup.port.token.ISecurityContextPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +49,7 @@ class LoanUseCaseTest {
     @Mock
     private ISecurityContextPort securityContextPort;
     @Mock
-    private ISqsSenderPort iSqsSenderPort;
+    private ISqsSenderPort sqsSenderPort;
 
     @InjectMocks
     private LoanUseCase loanUseCase;
@@ -107,6 +108,8 @@ class LoanUseCaseTest {
         when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.just(userConsumer));
         when(loanTypeRepositoryPort.findById(loan.getIdLoanType())).thenReturn(Mono.just(loanType));
         when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
+        when(loanRepositoryPort.findLoansForReviewApprovedByEmail(anyString())).thenReturn(Flux.empty());
+        when(sqsSenderPort.sendCapacityValidationMessage(any(CapacityValidationMessage.class))).thenReturn(Mono.empty());
 
         StepVerifier.create(loanUseCase.saveLoan(loan))
                 .expectNext(loan)
@@ -229,7 +232,7 @@ class LoanUseCaseTest {
         when(loanRepositoryPort.findById(anyLong())).thenReturn(Mono.just(loan));
         when(loanStateRepositoryPort.findByName(anyString())).thenReturn(Mono.just(approvedState));
         when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
-        when(iSqsSenderPort.sendMessage(any())).thenReturn(Mono.empty());
+        when(sqsSenderPort.sendMessage(any())).thenReturn(Mono.empty());
 
         StepVerifier.create(loanUseCase.processLoanDecision(1L, "APPROVED"))
                 .expectNextMatches(l -> l.getIdLoanState().equals(approvedState.getId()))

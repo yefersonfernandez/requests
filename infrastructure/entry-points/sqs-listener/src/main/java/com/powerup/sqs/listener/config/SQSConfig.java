@@ -1,8 +1,9 @@
-package com.powerup.sqs.sender.config;
+package com.powerup.sqs.listener.config;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import com.powerup.sqs.listener.helper.SQSListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import reactor.core.publisher.Mono;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProviderChain;
 import software.amazon.awssdk.auth.credentials.ContainerCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
@@ -12,14 +13,25 @@ import software.amazon.awssdk.auth.credentials.SystemPropertyCredentialsProvider
 import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.Message;
 
+import java.util.function.Function;
 
 @Configuration
-@ConditionalOnMissingBean(SqsAsyncClient.class)
-public class SQSSenderConfig {
+public class SQSConfig {
 
     @Bean
-    public SqsAsyncClient configSqs(SQSSenderProperties properties) {
+    public SQSListener sqsListener(SqsAsyncClient client, SQSProperties properties, Function<Message, Mono<Void>> fn) {
+        return SQSListener.builder()
+                .client(client)
+                .properties(properties)
+                .processor(fn)
+                .build()
+                .start();
+    }
+
+    @Bean
+    public SqsAsyncClient configSqs(SQSProperties properties) {
         return SqsAsyncClient.builder()
                 .region(Region.of(properties.region()))
                 .credentialsProvider(getProviderChain())

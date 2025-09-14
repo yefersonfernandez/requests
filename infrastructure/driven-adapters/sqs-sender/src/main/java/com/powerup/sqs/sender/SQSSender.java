@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powerup.enums.ExceptionMessages;
 import com.powerup.exception.SqsSendMessageException;
 import com.powerup.port.sqs.ISqsSenderPort;
+import com.powerup.port.sqs.model.CapacityValidationMessage;
 import com.powerup.port.sqs.model.LoanDecisionMessage;
 import com.powerup.sqs.sender.config.SQSSenderProperties;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ public class SQSSender implements ISqsSenderPort {
     @Override
     public Mono<Void> sendMessage(LoanDecisionMessage message) {
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(message))
-                .flatMap(rawMessage -> sendRawMessage(rawMessage, properties.queueUrl(), message))
+                .flatMap(rawMessage -> sendRawLoanDecisionMessage(rawMessage, properties.queueUrl(), message))
                 .onErrorMap(error -> {
                     log.error("Error sending LoanDecisionMessage. loanId=[{}], clientEmail=[{}], decision=[{}]. Cause: {}",
                             message.getLoanId(),
@@ -37,13 +38,36 @@ public class SQSSender implements ISqsSenderPort {
                 });
     }
 
-    private Mono<Void> sendRawMessage(String rawMessage, String queueUrl, LoanDecisionMessage message) {
+    @Override
+    public Mono<Void> sendCapacityValidationMessage(CapacityValidationMessage message) {
+        return Mono.fromCallable(() -> objectMapper.writeValueAsString(message))
+                .flatMap(rawMessage -> sendRawCapacityValidationMessage(rawMessage, properties.capacityValidationQueueUrl(), message))
+                .onErrorMap(error -> {
+                    log.error("Error sending CapacityValidationMessage. loanId=[{}], applicantEmail=[{}]. Cause: {}",
+                            message.getLoanId(),
+                            message.getApplicantEmail(),
+                            error.getMessage(),
+                            error);
+                    return new SqsSendMessageException(ExceptionMessages.REMOTE_SERVICE_ERROR.format(error.getMessage()));
+                });
+    }
+
+    private Mono<Void> sendRawLoanDecisionMessage(String rawMessage, String queueUrl, LoanDecisionMessage message) {
         return Mono.fromCallable(() -> buildRequest(rawMessage, queueUrl))
                 .flatMap(request -> Mono.fromFuture(client.sendMessage(request)))
                 .doOnNext(response -> log.info("LoanDecisionMessage sent. loanId=[{}], clientEmail=[{}], decision=[{}]",
                         message.getLoanId(),
                         message.getClientEmail(),
                         message.getDecision())
+                ).then();
+    }
+
+    private Mono<Void> sendRawCapacityValidationMessage(String rawMessage, String queueUrl, CapacityValidationMessage message) {
+        return Mono.fromCallable(() -> buildRequest(rawMessage, queueUrl))
+                .flatMap(request -> Mono.fromFuture(client.sendMessage(request)))
+                .doOnNext(response -> log.info("CapacityValidationMessage sent. loanId=[{}], applicantEmail=[{}]",
+                        message.getLoanId(),
+                        message.getApplicantEmail())
                 ).then();
     }
 
