@@ -7,12 +7,14 @@ import com.powerup.model.loantype.LoanType;
 import com.powerup.port.consumer.model.UserConsumer;
 import com.powerup.port.sqs.model.ActiveLoanInfo;
 import com.powerup.port.sqs.model.CapacityValidationMessage;
+import com.powerup.port.sqs.model.LoanApprovedMessage;
 import com.powerup.port.sqs.model.LoanDecisionMessage;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.List;
 
 @UtilityClass
@@ -69,6 +71,14 @@ public class LoanUtils {
                 .clientName(user.getFirstName() + " " + user.getLastName())
                 .baseSalary(user.getBaseSalary())
                 .totalMonthlyDebtApprovedLoans(totalMonthlyDebt)
+                .build();
+    }
+
+    public static LoanApprovedMessage buildLoanApprovedMessage(Loan savedLoan) {
+        return LoanApprovedMessage.builder()
+                .loanId(savedLoan.getId().toString())
+                .amount(savedLoan.getAmount())
+                .approvedAt(Instant.now())
                 .build();
     }
 

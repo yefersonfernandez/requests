@@ -55,6 +55,7 @@ class LoanUseCaseTest {
     private LoanUseCase loanUseCase;
 
     private Loan loan;
+    private Loan approvedLoan;
     private UserConsumer userConsumer;
     private LoanType loanType;
     private LoanState pendingState;
@@ -63,11 +64,21 @@ class LoanUseCaseTest {
     @BeforeEach
     void setUp() {
         loan = Loan.builder()
+                .id(1L)
                 .amount(BigDecimal.valueOf(5000))
                 .term(2)
                 .email("andres@gmail.com")
                 .identityDocument("123")
                 .idLoanState(1L)
+                .idLoanType(1L)
+                .build();
+
+        approvedLoan = Loan.builder()
+                .id(2L)
+                .amount(BigDecimal.valueOf(3000))
+                .term(3)
+                .email("andres@gmail.com")
+                .identityDocument("123")
                 .idLoanType(1L)
                 .build();
 
@@ -137,6 +148,40 @@ class LoanUseCaseTest {
         StepVerifier.create(loanUseCase.saveLoan(loan))
                 .expectError(LoanTypeNotFoundException.class)
                 .verify();
+    }
+
+    @Test
+    @DisplayName("Must send capacity validation message with active loans info")
+    void testSaveLoanWithActiveLoans() {
+        loanType.setAutomaticValidation(true);
+
+        when(securityContextPort.getUserEmail()).thenReturn(Mono.just("andres@gmail.com"));
+        when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.just(userConsumer));
+        when(loanTypeRepositoryPort.findById(loan.getIdLoanType())).thenReturn(Mono.just(loanType));
+        when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
+
+        when(loanRepositoryPort.findLoansForReviewApprovedByEmail(anyString())).thenReturn(Flux.just(approvedLoan));
+        when(loanTypeRepositoryPort.findById(approvedLoan.getIdLoanType())).thenReturn(Mono.just(loanType));
+        when(sqsSenderPort.sendCapacityValidationMessage(any(CapacityValidationMessage.class))).thenReturn(Mono.empty());
+
+        StepVerifier.create(loanUseCase.saveLoan(loan))
+                .expectNext(loan)
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Must return loan directly when automatic validation is disabled")
+    void testSaveLoanWithoutAutomaticValidation() {
+        loanType.setAutomaticValidation(false);
+
+        when(securityContextPort.getUserEmail()).thenReturn(Mono.just("andres@gmail.com"));
+        when(userConsumerPort.getUserByIdentityDocument(loan.getIdentityDocument())).thenReturn(Mono.just(userConsumer));
+        when(loanTypeRepositoryPort.findById(loan.getIdLoanType())).thenReturn(Mono.just(loanType));
+        when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
+
+        StepVerifier.create(loanUseCase.saveLoan(loan))
+                .expectNext(loan)
+                .verifyComplete();
     }
 
     @Test
@@ -233,6 +278,7 @@ class LoanUseCaseTest {
         when(loanStateRepositoryPort.findByName(anyString())).thenReturn(Mono.just(approvedState));
         when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
         when(sqsSenderPort.sendMessage(any())).thenReturn(Mono.empty());
+        when(sqsSenderPort.sendLoanApprovedMessage(any())).thenReturn(Mono.empty());
 
         StepVerifier.create(loanUseCase.processLoanDecision(1L, "APPROVED"))
                 .expectNextMatches(l -> l.getIdLoanState().equals(approvedState.getId()))
@@ -260,4 +306,16 @@ class LoanUseCaseTest {
                 .verify();
     }
 
+    @Test
+    @DisplayName("Must update loan state successfully")
+    void testUpdateLoanStateSuccess() {
+        when(loanRepositoryPort.findById(anyLong())).thenReturn(Mono.just(loan));
+        when(loanStateRepositoryPort.findByName(anyString())).thenReturn(Mono.just(approvedState));
+        when(loanRepositoryPort.saveLoan(any(Loan.class))).thenReturn(Mono.just(loan));
+        when(sqsSenderPort.sendLoanApprovedMessage(any())).thenReturn(Mono.empty());
+
+        StepVerifier.create(loanUseCase.updateLoanState(1L, "APPROVED"))
+                .expectNextMatches(l -> l.getIdLoanState().equals(approvedState.getId()))
+                .verifyComplete();
+    }
 }

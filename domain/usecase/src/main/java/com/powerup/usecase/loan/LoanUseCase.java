@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 
 import static com.powerup.usecase.util.LoanUtils.buildActiveLoanInfo;
 import static com.powerup.usecase.util.LoanUtils.buildCapacityValidationMessage;
+import static com.powerup.usecase.util.LoanUtils.buildLoanApprovedMessage;
 import static com.powerup.usecase.util.LoanUtils.buildLoanDecisionMessage;
 import static com.powerup.usecase.util.LoanUtils.buildLoanForReview;
 import static com.powerup.usecase.util.LoanUtils.buildLoanWithUserData;
@@ -127,6 +128,11 @@ public class LoanUseCase {
                         .switchIfEmpty(Mono.error(new LoanStateNotFoundException(ExceptionMessages.LOAN_STATE_NOT_FOUND.format(decision))))
                         .map(loanState -> { loan.setIdLoanState(loanState.getId()); return loan; })
                 )
-                .flatMap(loanRepositoryPort::saveLoan);
+                .flatMap(loanRepositoryPort::saveLoan)
+                .flatMap(savedLoan ->
+                        LoanStatus.APPROVED.getStatus().equals(decision)
+                                ? sqsSenderPort.sendLoanApprovedMessage(buildLoanApprovedMessage(savedLoan)).thenReturn(savedLoan)
+                                : Mono.just(savedLoan)
+                );
     }
 }

@@ -35,6 +35,7 @@ adapter:
     region: "${MY_AWS_REGION:us-east-1}"
     queueUrl: "${AWS_SQS_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-decisions-queue}"
     capacityValidationQueueUrl: "${AWS_SQS_CAPACITY_VALIDATION_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-capacity-validation-request-queue}"
+    approvedLoanQueueUrl: "${AWS_SQS_APPROVED_LOAN_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225422344476/loan-approved-queue}"
 
 resilience4j:
   circuitbreaker:

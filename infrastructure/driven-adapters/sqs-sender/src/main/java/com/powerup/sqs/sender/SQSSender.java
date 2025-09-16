@@ -5,6 +5,7 @@ import com.powerup.enums.ExceptionMessages;
 import com.powerup.exception.SqsSendMessageException;
 import com.powerup.port.sqs.ISqsSenderPort;
 import com.powerup.port.sqs.model.CapacityValidationMessage;
+import com.powerup.port.sqs.model.LoanApprovedMessage;
 import com.powerup.port.sqs.model.LoanDecisionMessage;
 import com.powerup.sqs.sender.config.SQSSenderProperties;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,19 @@ public class SQSSender implements ISqsSenderPort {
                 });
     }
 
+    @Override
+    public Mono<Void> sendLoanApprovedMessage(LoanApprovedMessage message) {
+        return Mono.fromCallable(() -> objectMapper.writeValueAsString(message))
+                .flatMap(rawMessage -> sendRawLoanApprovedMessage(rawMessage, properties.approvedLoanQueueUrl(), message))
+                .onErrorMap(error -> {
+                    log.error("Error sending LoanApprovedMessage. Cause: {}",
+                            error.getMessage(),
+                            error);
+                    return new SqsSendMessageException(ExceptionMessages.REMOTE_SERVICE_ERROR.format(error.getMessage()));
+                });
+
+    }
+
     private Mono<Void> sendRawLoanDecisionMessage(String rawMessage, String queueUrl, LoanDecisionMessage message) {
         return Mono.fromCallable(() -> buildRequest(rawMessage, queueUrl))
                 .flatMap(request -> Mono.fromFuture(client.sendMessage(request)))
@@ -68,6 +82,16 @@ public class SQSSender implements ISqsSenderPort {
                 .doOnNext(response -> log.info("CapacityValidationMessage sent. loanId=[{}], applicantEmail=[{}]",
                         message.getLoanId(),
                         message.getApplicantEmail())
+                ).then();
+    }
+
+    private Mono<Void> sendRawLoanApprovedMessage(String rawMessage, String queueUrl, LoanApprovedMessage message) {
+        return Mono.fromCallable(() -> buildRequest(rawMessage, queueUrl))
+                .flatMap(request -> Mono.fromFuture(client.sendMessage(request)))
+                .doOnNext(response -> log.info("LoanApprovedMessage sent. loanId=[{}], amount=[{}], approvedAt=[{}]",
+                        message.getLoanId(),
+                        message.getAmount(),
+                        message.getApprovedAt())
                 ).then();
     }
 
