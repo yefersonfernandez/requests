@@ -103,11 +103,26 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     classDirectories.setFrom(
             files(subprojects.sourceSets.main.output).collect {
                 fileTree(dir: it, exclude: [
+                        '**/com/powerup/MainApplication.class',
                         '**/com/powerup/security/config/**',
                         '**/com/powerup/security/exceptions/**',
                         '**/com/powerup/security/constants/**',
+                        '**/com/powerup/security/provider/**',
                         '**/com/powerup/api/config/**',
-                        '**/com/powerup/sqs/sender/config/**',
+                        '**/com/powerup/api/loan/**',
+                        '**/com/powerup/api/openapi/**',
+                        '**/com/powerup/api/exception/**',
+                        '**/com/powerup/api/mapper/**',
+                        '**/com/powerup/api/util/**',
+                        '**/com/powerup/sqs/sender/**',
+                        '**/com/powerup/sqs/listener/**',
+                        '**/com/powerup/sqs/listener/config/**',
+                        '**/com/powerup/sqs/listener/helper/**',
+                        '**/com/powerup/consumer/config/**',
+                        '**/com/powerup/config/**',
+                        '**/com/powerup/api/dto/request/**',
+                        '**/com/powerup/api/dto/response/**',
+                        '**/com/powerup/sqs/listener/dto/**'
                 ])
             }
     )

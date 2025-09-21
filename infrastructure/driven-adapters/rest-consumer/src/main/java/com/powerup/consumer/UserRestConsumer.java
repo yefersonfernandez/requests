@@ -27,7 +27,7 @@ public class UserRestConsumer implements IUserConsumerPort {
         return securityContextPort.getAccessToken()
                 .flatMap(token -> client
                         .get()
-                        .uri("/api/v1/users/userByIdentityDocument/{identityDocument}", identityDocument)
+                        .uri("/userByIdentityDocument/{identityDocument}", identityDocument)
                         .headers(headers -> headers.setBearerAuth(token))
                         .retrieve()
                         .onStatus(HttpStatusCode::is4xxClientError, response -> handle4xxError(response, identityDocument))
@@ -42,7 +42,7 @@ public class UserRestConsumer implements IUserConsumerPort {
         return securityContextPort.getAccessToken()
                 .flatMap(token -> client
                         .get()
-                        .uri("/api/v1/users/userByEmail/{email}", email)
+                        .uri("/userByEmail/{email}", email)
                         .headers(headers -> headers.setBearerAuth(token))
                         .retrieve()
                         .onStatus(HttpStatusCode::is4xxClientError, response -> handle4xxError(response, email))

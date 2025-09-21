@@ -13,11 +13,12 @@ public class SecurityConstants {
     public static final String ROLE_CLIENT = "CLIENT";
     public static final String ROLE_ADVISOR = "ADVISOR";
 
-    public static final String LOAN_CREATION_URL = "/api/v1/loans";
-    public static final String LOAN_REVIEW_URL = "/api/v1/loansForReview";
-    public static final String LOAN_DECISION_URL = "/api/v1/loans/{id}/decision";
+    public static final String ACTUATOR_HEALTH_URL = "/request/actuator/health";
+    public static final String LOAN_CREATION_URL = "/request/api/v1/loans";
+    public static final String LOAN_REVIEW_URL = "/request/api/v1/loansForReview";
+    public static final String LOAN_DECISION_URL = "/request/api/v1/loans/{id}/decision";
     public static final String[] PUBLIC_SWAGGER_PATHS = {
-            "/api/doc/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**"
+            "/request/api/doc/**", "/request/v3/api-docs/**",
+            "/request/swagger-ui.html", "/request/swagger-ui/**"
     };
-
 }

@@ -11,12 +11,12 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 @Configuration
 public class JwtConfig {
 
-    @Value("${security.jwt.keys-location.public}")
-    private Resource publicKeyResource;
+    @Value("${security.jwt.keys.public}")
+    private String publicKey;
 
     @Bean
     public JwtPublicKeyProvider jwtPublicKeyProvider() {
-        return new JwtPublicKeyProvider(publicKeyResource);
+        return new JwtPublicKeyProvider(publicKey);
     }
 
     @Bean
